@@ -1,0 +1,31 @@
+With Cancelled as (select count(subscriptions.id) as Cancelled, date_part('month',subscriptions.cancelled_at) as Revenue_month, date_part('year',subscriptions.cancelled_at) as Revenue_year from  "recharge_upgraid"."subscriptions"
+where subscriptions.status = 'CANCELLED'
+group by Revenue_month, Revenue_year),
+Created as (select count(distinct orders.customer__id) as Created, date_part('month',orders.created_at::date) as Revenue_month, date_part('year',orders.created_at::date) as Revenue_year from "shopify_upgraid"."orders" 
+where fulfillment_status = 'fulfilled'
+and orders.tags = 'Subscription, Subscription First Order'
+group by Revenue_month, Revenue_year),
+Beginning as (select count(distinct orders.customer__id) as Beginning, date_part('month',orders.created_at::date + 31) as Revenue_month, date_part('year',orders.created_at::date + 31) as Revenue_year from "shopify_upgraid"."orders" 
+where fulfillment_status = 'fulfilled'
+and (orders.tags = 'Subscription, Subscription Recurring Order' or
+orders.tags = 'Subscription, Subscription First Order')
+group by Revenue_month, Revenue_year),
+Ending as (select count(distinct orders.customer__id) as Ending, date_part('month',orders.created_at::date) as Revenue_month, date_part('year',orders.created_at::date) as Revenue_year from "shopify_upgraid"."orders" 
+where fulfillment_status = 'fulfilled'
+and (orders.tags = 'Subscription, Subscription Recurring Order' or
+orders.tags = 'Subscription, Subscription First Order')
+group by Revenue_month, Revenue_year)
+Select concat(created.Revenue_month,' ',created.Revenue_year) as month_year, sum(Cancelled.Cancelled) as Cancellations, sum(Created.created) as New_Subscribers, 
+case when sum(beginning.beginning) is null then 0 else sum(beginning.beginning) end as Existing_Install_Base, sum(Ending.Ending) as Number_Of_Customers_Charged
+from Created
+left join Cancelled 
+on cancelled.Revenue_month = created.Revenue_month
+and cancelled.Revenue_year = created.Revenue_year
+left join beginning
+on beginning.Revenue_month = created.Revenue_month
+and beginning.Revenue_year = created.Revenue_year
+left join ending
+on ending.Revenue_month = created.Revenue_month
+and ending.Revenue_year = created.Revenue_year
+group by created.Revenue_month, created.Revenue_year
+order by created.Revenue_year, created.Revenue_month

@@ -1,0 +1,12 @@
+with Ads_Overview as (select sum(spend) as spend, date_part('month',date_start::date) as Spend_Month,date_part('year',date_start::date) as Spend_Year 
+from "upgraid_ads"."ads_insights" group by Spend_Year, Spend_Month ),
+ads_actions as (select sum(value) as Purchases, date_part('month',ads_insights__actions._sdc_source_key_date_start::date) as Spend_Month,
+date_part('year',ads_insights__actions._sdc_source_key_date_start::date) as Spend_Year from "upgraid_ads"."ads_insights__actions" 
+where action_type = 'offsite_conversion.fb_pixel_purchase' group by Spend_Month,Spend_Year)
+select concat(Ads_Overview.Spend_Month,' ',Ads_Overview.Spend_Year) as Year_Month, sum(spend)/sum(purchases) as CPP
+from Ads_Overview
+left join ads_actions
+on ads_actions.Spend_Month = Ads_Overview.Spend_Month
+and ads_actions.Spend_Year = Ads_Overview.Spend_Year
+group by Ads_Overview.Spend_Year, Ads_Overview.Spend_Month
+order by Ads_Overview.Spend_Year, Ads_Overview.Spend_Month

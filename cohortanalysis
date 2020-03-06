@@ -1,0 +1,81 @@
+with All_Data as (With Overview as (with Initial_Cohort as (select orders.customer__id,rank() over(partition by orders.customer__id order by orders.processed_at) as Dedupe,processed_at::date as initial_date,date_part('month',processed_at::date) as Initial_Month, date_part('Year',processed_at::date) as Initial_Year, processed_at::Date  from "shopify_upgraid"."orders"
+where fulfillment_status = 'fulfilled'
+and orders.tags = 'Subscription, Subscription First Order'
+and customer__id <>  2223391670362
+and customer__id <> 2292265582682
+and customer__id <> 2325469691994
+and customer__id <> 2337084997722),
+repeat_orders as (select rank() over(partition by orders.customer__id order by processed_at::date desc) as Purchase_Number, orders.customer__id, processed_at::date from "shopify_upgraid"."orders" where  fulfillment_status = 'fulfilled'
+and orders.tags = 'Subscription, Subscription Recurring Order'
+and customer__id <>  2223391670362
+and customer__id <> 2292265582682
+and customer__id <> 2325469691994
+and customer__id <> 2337084997722
+) 
+select Initial_Cohort.Initial_Month,Initial_Cohort.Initial_Year, Initial_Cohort.customer__id, repeat_orders.Purchase_Number, 
+Initial_Cohort.processed_at::date, repeat_orders.processed_at::date, repeat_orders.processed_at - Initial_Cohort.processed_at as Length_Active
+from Initial_Cohort
+left join repeat_orders
+on repeat_orders.customer__id = Initial_Cohort.customer__id
+and Initial_Cohort.dedupe = 1)
+select *,
+case when length_active <= 30 then '30 Days' when length_active > 30 and length_active <= 60 then '60 Days' when length_active > 60 and length_active <= 90 then '90 Days' 
+when length_active > 90 and length_active <= 120 then '120 Days' when length_active > 120 and length_active <= 150 then '150 Days' when length_active > 150 and length_active <= 180 then '180 Days' 
+when length_active > 180 and length_active <= 210 then '210 Days' when length_active > 210 and length_active <= 240 then '240 Days' when length_active > 240 and length_active <= 270 then '270 Days' 
+when length_active > 270 and length_active <= 300 then '300 Days' when length_active > 300 and length_active <= 330 then '330 Days' when length_active > 330 and length_active <= 360 then '360 Days' 
+else 'Not Included' end as Cohort
+from Overview),
+Cohort_Total as (select count(distinct customer__id) as Initial_Signups, initial_month, Initial_Year from all_data group by initial_month, Initial_Year),
+One_Month as (select count(distinct customer__id) as Thirty_Days, initial_month, Initial_Year from all_data where cohort = '30 Days' group by initial_month, Initial_Year),
+Two_Month as (select count(distinct customer__id) as Sixty_Days, initial_month, Initial_Year from all_data where cohort = '60 Days' group by initial_month, Initial_Year),
+Three_Month as (select count(distinct customer__id) as Ninety_Days, initial_month, Initial_Year from all_data where cohort = '90 Days' group by initial_month, Initial_Year),
+Four_Month as (select count(distinct customer__id) as One_Hundred_Twenty_Days, initial_month, Initial_Year from all_data where cohort = '120 Days' group by initial_month, Initial_Year),
+Five_Month as (select count(distinct customer__id) as One_Hundred_Fifty_Days, initial_month, Initial_Year from all_data where cohort = '150 Days' group by initial_month, Initial_Year),
+Six_Month as (select count(distinct customer__id) as One_Hundred_Eighty_Days, initial_month, Initial_Year from all_data where cohort = '180 Days' group by initial_month, Initial_Year),
+Seven_Month as (select count(distinct customer__id) as Two_Hundred_Ten_Days, initial_month, Initial_Year from all_data where cohort = '210 Days' group by initial_month, Initial_Year),
+Eight_Month as (select count(distinct customer__id) as Two_Hundred_Forty_Days, initial_month, Initial_Year from all_data where cohort = '240 Days' group by initial_month, Initial_Year),
+Nine_Month as (select count(distinct customer__id) as Two_Hundred_Seventy_Days, initial_month, Initial_Year from all_data where cohort = '270 Days' group by initial_month, Initial_Year),
+Ten_Month as (select count(distinct customer__id) as Three_Hundred_Days, initial_month, Initial_Year from all_data where cohort = '300 Days' group by initial_month, Initial_Year),
+Eleven_Month as (select count(distinct customer__id) as Three_Hundred_Thirty_Days, initial_month, Initial_Year from all_data where cohort = '330 Days' group by initial_month, Initial_Year),
+Twelve_Month as (select count(distinct customer__id) as Three_Hundred_Sixty_Days, initial_month, Initial_Year from all_data where cohort = '360 Days' group by initial_month, Initial_Year)
+Select Cohort_Total.initial_month, Cohort_Total.Initial_Year, Cohort_Total.Initial_Signups, One_Month.Thirty_Days,Two_Month.Sixty_Days,Three_Month.Ninety_Days,
+four_month.One_Hundred_Twenty_Days,five_month.One_Hundred_Fifty_Days, Six_Month.One_Hundred_Eighty_Days,Seven_Month.Two_Hundred_Ten_Days,Eight_Month.Two_Hundred_Forty_Days,
+Nine_Month.Two_Hundred_Seventy_Days,Ten_Month.Three_Hundred_Days,Eleven_Month.Three_Hundred_Thirty_Days,Twelve_Month.Three_Hundred_Sixty_Days
+from Cohort_Total
+left join One_Month
+on One_Month.Initial_Year = Cohort_Total.Initial_Year
+and One_Month.initial_month = Cohort_Total.initial_month
+left join Two_Month
+on two_Month.Initial_Year = Cohort_Total.Initial_Year
+and two_Month.initial_month = Cohort_Total.initial_month
+left join Three_Month
+on three_Month.Initial_Year = Cohort_Total.Initial_Year
+and three_Month.initial_month = Cohort_Total.initial_month
+left join four_month
+on four_Month.Initial_Year = Cohort_Total.Initial_Year
+and four_Month.initial_month = Cohort_Total.initial_month
+left join five_month
+on five_Month.Initial_Year = Cohort_Total.Initial_Year
+and five_Month.initial_month = Cohort_Total.initial_month
+left join six_month
+on six_Month.Initial_Year = Cohort_Total.Initial_Year
+and six_Month.initial_month = Cohort_Total.initial_month
+left join seven_month
+on seven_Month.Initial_Year = Cohort_Total.Initial_Year
+and seven_Month.initial_month = Cohort_Total.initial_month
+left join eight_month
+on eight_Month.Initial_Year = Cohort_Total.Initial_Year
+and eight_Month.initial_month = Cohort_Total.initial_month
+left join nine_month
+on nine_Month.Initial_Year = Cohort_Total.Initial_Year
+and nine_Month.initial_month = Cohort_Total.initial_month
+left join ten_month
+on ten_Month.Initial_Year = Cohort_Total.Initial_Year
+and ten_Month.initial_month = Cohort_Total.initial_month
+left join eleven_month
+on eleven_Month.Initial_Year = Cohort_Total.Initial_Year
+and eleven_Month.initial_month = Cohort_Total.initial_month
+left join twelve_month
+on twelve_Month.Initial_Year = Cohort_Total.Initial_Year
+and twelve_Month.initial_month = Cohort_Total.initial_month
+order by Cohort_Total.Initial_Year,Cohort_Total.initial_month asc

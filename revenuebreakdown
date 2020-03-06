@@ -1,0 +1,6 @@
+with Orders_Overview as ( WITH ORDERS AS (SELECT ORDERS.customer__id,orders.customer__tags, orders.total_price, orders.tags, orders.id, processed_at, rank() over(partition by orders.customer__id order by processed_at) as Lookup from "shopify_upgraid"."orders" where fulfillment_status = 'fulfilled') select orders.customer__id, orders.id, orders.customer__tags,processed_at, orders.tags, case when orders.tags = '' and lookup = 1 then 'One Time'  when orders.tags = '' and lookup > 1 then 'One Time Repeat' else 'Subscription' end as Classification,date_part('month',processed_at::date) as order_month, date_part('Year',processed_at::date) as Order_Year, orders.total_price from Orders
+ORDER BY processed_at)
+select Orders_Overview.Classification, concat(Orders_Overview.order_month,' ',Orders_Overview.Order_Year) as Month_Year, sum(Orders_Overview.total_price) as revenue
+from Orders_Overview
+group by Orders_Overview.Classification, order_month, order_year
+ORDER BY order_year, order_month  

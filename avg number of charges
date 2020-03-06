@@ -1,0 +1,76 @@
+With Cohort as (With Customer_Cohorts as (with Initial_Cohort as (select orders.customer__id,rank() over(partition by orders.customer__id order by orders.processed_at) as Dedupe,processed_at::date as initial_date,date_part('month',processed_at::date) as Initial_Month, date_part('Year',processed_at::date) as Initial_Year, processed_at::Date  from "shopify_upgraid"."orders"
+where fulfillment_status = 'fulfilled'
+and orders.tags = 'Subscription, Subscription First Order'
+and customer__id <>  2223391670362),
+repeat_orders as (select rank() over(partition by orders.customer__id order by processed_at::date desc) as Purchase_Number, orders.customer__id, processed_at::date from "shopify_upgraid"."orders" where  fulfillment_status = 'fulfilled'
+and orders.tags = 'Subscription, Subscription Recurring Order'
+and customer__id <>  2223391670362
+) 
+select Initial_Cohort.Initial_Month,Initial_Cohort.Initial_Year, Initial_Cohort.customer__id, repeat_orders.Purchase_Number
+from Initial_Cohort
+left join repeat_orders
+on repeat_orders.customer__id = Initial_Cohort.customer__id
+and Initial_Cohort.dedupe = 1),
+Month_Zero_Start as (select count(customer__id) as Month_Zero,Month_zero_first.Initial_Month, Month_zero_first.Initial_Year from (
+select distinct Customer_Cohorts.customer__id, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year
+from Customer_Cohorts) as Month_zero_first group by Month_zero_first.Initial_Year,Month_zero_first.Initial_Month),
+Month_One as (select count(Customer_Cohorts.customer__id) as Month_One, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 1 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year ),
+Month_Two as (select count(Customer_Cohorts.customer__id) as Month_Two, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 2 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year),
+Month_Three as (select count(Customer_Cohorts.customer__id) as Month_Three, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 3 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year),
+Month_Four as (select count(Customer_Cohorts.customer__id) as Month_Four, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 4 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year),
+Month_Five as (select count(Customer_Cohorts.customer__id) as Month_Five, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 5 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year),
+Month_Six as (select count(Customer_Cohorts.customer__id) as Month_Six, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 6 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year),
+Month_Seven as (select count(Customer_Cohorts.customer__id) as Month_Seven, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 7 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year),
+Month_Eight as (select count(Customer_Cohorts.customer__id) as Month_Eight, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 8 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year),
+Month_Nine as (select count(Customer_Cohorts.customer__id) as Month_Nine, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 9 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year),
+Month_Ten as (select count(Customer_Cohorts.customer__id) as Month_Ten, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 10 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year),
+Month_Eleven as (select count(Customer_Cohorts.customer__id) as Month_Eleven, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 11 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year),
+Month_Twelve as (select count(Customer_Cohorts.customer__id) as Month_Twelve, Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year from Customer_Cohorts where Customer_Cohorts.purchase_number = 12 group by Customer_Cohorts.Initial_Month,Customer_Cohorts.Initial_Year)
+Select Month_Zero_Start.Initial_Month, Month_Zero_Start.Initial_Year, Month_Zero_Start.Month_Zero as Cohort, Month_One.Month_One as Two_Charges, Month_Two.Month_Two as Three_Charges, Month_Three.Month_Three as Four_Charges,Month_Four.Month_Four as Five_Charges, Month_Five.Month_Five as Six_Charges,
+Month_Six.Month_Six as seven_charges, Month_SeveN.Month_SeveN as eight_charges, Month_Eight.Month_Eight as nine_charges,
+Month_Nine.Month_Nine as ten_charges, Month_Ten.Month_Ten as eleven_charges, Month_Eleven.Month_Eleven as twelve_Charges, Month_Twelve.Month_Twelve as thirteen_charges
+from Month_Zero_Start
+left join Month_One
+on Month_One.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_One.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Two
+on Month_Two.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Two.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Three
+on Month_Three.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Three.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Four
+on Month_Four.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Four.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Five
+on Month_Five.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Five.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Six
+on Month_Six.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Six.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Seven
+on Month_Seven.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Seven.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Eight
+on Month_Eight.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Eight.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Nine
+on Month_Nine.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Nine.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Ten
+on Month_Ten.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Ten.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Eleven
+on Month_Eleven.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Eleven.Initial_Year = Month_Zero_Start.Initial_Year
+left join Month_Twelve
+on Month_Twelve.Initial_Month = Month_Zero_Start.Initial_Month
+and Month_Twelve.Initial_Year = Month_Zero_Start.Initial_Year
+order by Initial_Year asc, Initial_Month asc)
+select Initial_Month, Initial_Year, (1.00*(case when cohort.Cohort is null then 0 else cohort.cohort end) + 1.00*(case when cohort.two_Charges is null then 0 else cohort.two_Charges end) 
++ 1.00*(case when cohort.Three_Charges is null then 0 else cohort.Three_Charges end) + 1.00*(case when cohort.Four_Charges is null then 0 else cohort.Four_Charges end) + 
+1.00*(case when cohort.five_charges is null then 0 else cohort.five_charges end) + 1.00*(case when cohort.six_charges is null then 0 else cohort.six_charges end) + 
+1.00*(case when cohort.seven_charges is null then 0 else cohort.seven_charges end) + 1.00*(case when cohort.eight_charges is null then 0 else cohort.eight_charges end) +
+1.00*(case when nine_charges is null then 0 else nine_charges end) + 1.00*(case when ten_charges is null then 0 else ten_charges end) + 11*(case when eleven_charges is null then 0 else eleven_charges end)
++ 1.00*(case when twelve_Charges is null then 0 else twelve_Charges end) + 1.00*(Case when thirteen_charges is null then 0 else thirteen_charges end)) / (cohort.cohort*1.00) as Average_Number_Of_Charges
+from cohort
